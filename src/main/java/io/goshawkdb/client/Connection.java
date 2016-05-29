@@ -184,13 +184,13 @@ public class Connection implements AutoCloseable {
     /**
      * Run a transaction.
      *
-     * @param fun      The transaction function to run. This will be automatically restarted as many
+     * @param function      The transaction function to run. This will be automatically restarted as many
      *                 times as necessary until the transaction either commits or chooses to abort.
      * @param <Result> The result of the transaction fuction.
      * @return The result of the transaction fuction.
      * @throws Exception The transaction may through exceptions.
      */
-    public <Result> TransactionResult<Result> runTransaction(final TransactionFunction<Result> fun) throws Exception {
+    public <Result> TransactionResult<Result> runTransaction(final TransactionFunction<Result> function) {
         final VarUUId r;
         final TransactionImpl<?> oldTxn;
         synchronized (lock) {
@@ -200,7 +200,7 @@ public class Connection implements AutoCloseable {
             r = root;
             oldTxn = txn;
         }
-        final TransactionImpl<Result> curTxn = new TransactionImpl<>(fun, this, this.cache, r, oldTxn);
+        final TransactionImpl<Result> curTxn = new TransactionImpl<>(function, this, this.cache, r, oldTxn);
         synchronized (lock) {
             txn = curTxn;
         }

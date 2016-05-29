@@ -24,22 +24,22 @@ final class TransactionImpl<Result> implements Transaction {
 
     final Cache cache;
     private final HashMap<VarUUId, GoshawkObj> objs = new HashMap<>();
-    private final TransactionFunction<Result> fun;
+    private final TransactionFunction<Result> function;
     private final Connection conn;
     private final VarUUId root;
     private final TransactionImpl<?> parent;
 
     boolean resetInProgress = false;
 
-    TransactionImpl(final TransactionFunction<Result> fun, final Connection conn, Cache cache, final VarUUId root, final TransactionImpl<?> parent) {
-        this.fun = fun;
+    TransactionImpl(final TransactionFunction<Result> function, final Connection conn, Cache cache, final VarUUId root, final TransactionImpl<?> parent) {
+        this.function = function;
         this.conn = conn;
         this.cache = cache;
         this.root = root;
         this.parent = parent;
     }
 
-    TransactionResult<Result> run() throws Exception {
+    TransactionResult<Result> run() {
         try {
             while (true) {
                 if (resetInProgress) {
@@ -52,22 +52,37 @@ final class TransactionImpl<Result> implements Transaction {
                 resetObjects();
                 Result result = null;
                 try {
-                    result = fun.apply(this);
+                    result = function.apply(this);
                 } catch (final TransactionRestartRequiredException e) {
+                    // NO-OP, but maybe this should be logged?
+                } catch (Exception e) {
+                    // where an error results from the user doing something wrong
+                    return new TransactionResult<>(e, null);
                 }
                 if (resetInProgress) {
+                    // FIXME could this be a single test?
                     if (parent == null || !parent.resetInProgress) {
                         continue;
                     } else {
                         throw TransactionRestartRequiredException.e;
                     }
                 } else if (parent == null) {
-                    final TxnId txnId = submitToServer();
-                    if (txnId == null) {
-                        continue;
-                    } else {
-                        return new TransactionResult<>(result, txnId);
+
+                    // what happens if an error happens here?
+                    // An exception is catchable, but is the Connection closed by the server?
+                    try {
+                        final TxnId txnId = submitToServer();
+                        // FIXME could this be a single test?
+                        if (txnId == null) {
+                            continue;
+                        } else {
+                            return new TransactionResult<>(result, txnId);
+                        }
                     }
+                    catch (RuntimeException e) {
+                        return new TransactionResult<>(result, e, null);
+                    }
+
                 } else {
                     moveObjsToParent();
                     return new TransactionResult<>(result, null);

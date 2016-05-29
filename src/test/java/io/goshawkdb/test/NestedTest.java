@@ -103,7 +103,7 @@ public class NestedTest extends TestBase {
         }
     }
 
-    private static class UserAbortedTxnException extends Exception {
+    private static class UserAbortedTxnException extends RuntimeException {
     }
 
     @Test
