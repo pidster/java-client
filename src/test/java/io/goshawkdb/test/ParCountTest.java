@@ -28,24 +28,24 @@ public class ParCountTest extends TestBase {
     @Test
     public void parCount() throws Exception {
         try {
-            final int threadCount = 8;
-            final TxnId origRootVsn = setRootToNZeroObjs(createConnections(1)[0], threadCount);
+            int threadCount = 8;
+            TxnId origRootVsn = setRootToNZeroObjs(createConnections(1)[0], threadCount);
 
-            inParallel(threadCount, (final int tId, final Connection c, final Queue<Exception> exceptionQ) -> {
+            inParallel(threadCount, (int tId, Connection c, Queue<Exception> exceptionQ) -> {
                 awaitRootVersionChange(c, origRootVsn);
-                final VarUUId objId = c.runTransaction((final Transaction txn) ->
+                VarUUId objId = c.runTransaction(txn ->
                         txn.getRoot().getReferences()[tId].id
                 ).result;
-                final long start = System.nanoTime();
+                long start = System.nanoTime();
                 long expected = 0L;
                 for (int idx = 0; idx < 1000; idx++) {
-                    final long expectedCopy = expected;
-                    expected = c.runTransaction((final Transaction txn) -> {
-                        final GoshawkObj obj = txn.getObject(objId);
-                        final ByteBuffer valBuf = obj.getValue().order(ByteOrder.BIG_ENDIAN);
-                        final long old = valBuf.getLong(0);
+                    long expectedCopy = expected;
+                    expected = c.runTransaction(txn -> {
+                        GoshawkObj obj = txn.getObject(objId);
+                        ByteBuffer valBuf = obj.getValue().order(ByteOrder.BIG_ENDIAN);
+                        long old = valBuf.getLong(0);
                         if (old == expectedCopy) {
-                            final long val = old + 1;
+                            long val = old + 1;
                             obj.set(valBuf.putLong(0, val));
                             return val;
                         } else {
@@ -53,7 +53,7 @@ public class ParCountTest extends TestBase {
                         }
                     }).result;
                 }
-                final long end = System.nanoTime();
+                long end = System.nanoTime();
                 System.out.println("" + tId + ": Elapsed time: " + ((double) (end - start)) / 1000000D + "ms");
             });
         } finally {

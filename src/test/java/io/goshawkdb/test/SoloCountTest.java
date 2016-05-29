@@ -25,18 +25,18 @@ public class SoloCountTest extends TestBase {
     @Test
     public void soloCount() throws Exception {
         try {
-            final Connection conn = createConnections(1)[0];
+            Connection conn = createConnections(1)[0];
             setRootToZeroInt64(conn);
-            final long start = System.nanoTime();
+            long start = System.nanoTime();
             long expected = 0L;
             for (int idx = 0; idx < 1000; idx++) {
-                final long expectedCopy = expected;
-                expected = conn.runTransaction((final Transaction txn) -> {
-                    final GoshawkObj root = txn.getRoot();
-                    final ByteBuffer valBuf = root.getValue().order(ByteOrder.BIG_ENDIAN);
-                    final long old = valBuf.getLong(0);
+                long expectedCopy = expected;
+                expected = conn.runTransaction(txn -> {
+                    GoshawkObj root = txn.getRoot();
+                    ByteBuffer valBuf = root.getValue().order(ByteOrder.BIG_ENDIAN);
+                    long old = valBuf.getLong(0);
                     if (old == expectedCopy) {
-                        final long val = old + 1;
+                        long val = old + 1;
                         root.set(valBuf.putLong(0, val));
                         return val;
                     } else {
@@ -44,7 +44,7 @@ public class SoloCountTest extends TestBase {
                     }
                 }).result;
             }
-            final long end = System.nanoTime();
+            long end = System.nanoTime();
             System.out.println("Elapsed time: " + ((double) (end - start)) / 1000000D + "ms");
         } finally {
             shutdown();

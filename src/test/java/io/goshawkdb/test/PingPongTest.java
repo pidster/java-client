@@ -26,18 +26,18 @@ public class PingPongTest extends TestBase {
     @Test
     public void pingPong() throws Exception {
         try {
-            final int limit = 1000;
-            final int threadCount = 4;
-            final TxnId origRootVsn = setRootToZeroInt64(createConnections(1)[0]);
+            int limit = 1000;
+            int threadCount = 4;
+            TxnId origRootVsn = setRootToZeroInt64(createConnections(1)[0]);
 
-            inParallel(threadCount, (final int tId, final Connection c, final Queue<Exception> exceptionQ) -> {
+            inParallel(threadCount, (int tId, Connection c, Queue<Exception> exceptionQ) -> {
                 awaitRootVersionChange(c, origRootVsn);
                 boolean inProgress = true;
                 while (inProgress) {
-                    inProgress = c.runTransaction((final Transaction txn) -> {
-                        final GoshawkObj root = txn.getRoot();
-                        final ByteBuffer valBuf = root.getValue().order(ByteOrder.BIG_ENDIAN);
-                        final long val = valBuf.getLong(0);
+                    inProgress = c.runTransaction(txn -> {
+                        GoshawkObj root = txn.getRoot();
+                        ByteBuffer valBuf = root.getValue().order(ByteOrder.BIG_ENDIAN);
+                        long val = valBuf.getLong(0);
                         if (val > limit) {
                             return false;
                         } else if (val % threadCount == tId) {

@@ -25,29 +25,29 @@ public class SimpleConflictTest extends TestBase {
     @Test
     public void simpleConflict() throws Exception {
         try {
-            final long limit = 1000;
-            final int parCount = 5;
-            final int objCount = 3;
+            long limit = 1000;
+            int parCount = 5;
+            int objCount = 3;
 
-            final TxnId rootOrigVsn = setRootToNZeroObjs(createConnections(1)[0], objCount);
+            TxnId rootOrigVsn = setRootToNZeroObjs(createConnections(1)[0], objCount);
 
-            inParallel(parCount, (final int tId, final Connection conn, final Queue<Exception> exceptionQ) -> {
+            inParallel(parCount, (int tId, Connection conn, Queue<Exception> exceptionQ) -> {
                 awaitRootVersionChange(conn, rootOrigVsn);
                 long expected = 0L;
-                final ByteBuffer buf = ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN);
+                ByteBuffer buf = ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN);
                 while (expected <= limit) {
-                    final long expectedCopy = expected;
-                    final long read = conn.runTransaction((final Transaction txn) -> {
+                    long expectedCopy = expected;
+                    long read = conn.runTransaction(txn -> {
                         System.out.println("" + tId + ": starting with expected " + expectedCopy);
-                        final GoshawkObj[] objs = txn.getRoot().getReferences();
-                        final long val = objs[0].getValue().order(ByteOrder.BIG_ENDIAN).getLong(0);
+                        GoshawkObj[] objs = txn.getRoot().getReferences();
+                        long val = objs[0].getValue().order(ByteOrder.BIG_ENDIAN).getLong(0);
                         if (val > limit) {
                             return val;
                         }
                         buf.putLong(0, val + 1);
                         objs[0].set(buf);
                         for (int idx = 1; idx < objs.length; idx++) {
-                            final long vali = objs[idx].getValue().order(ByteOrder.BIG_ENDIAN).getLong(0);
+                            long vali = objs[idx].getValue().order(ByteOrder.BIG_ENDIAN).getLong(0);
                             if (val == vali) {
                                 objs[idx].set(buf);
                             } else {

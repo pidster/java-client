@@ -28,13 +28,13 @@ public class RetryTest extends TestBase {
     @Test
     public void simpleRetry() throws Exception {
         try {
-            final long magicNumber = 42L;
-            final int retriers = 8;
-            final TxnId origRootVsn = setRootToZeroInt64(createConnections(1)[0]);
-            final CountDownLatch retryLatch = new CountDownLatch(retriers);
-            final CountDownLatch successLatch = new CountDownLatch(retriers);
+            long magicNumber = 42L;
+            int retriers = 8;
+            TxnId origRootVsn = setRootToZeroInt64(createConnections(1)[0]);
+            CountDownLatch retryLatch = new CountDownLatch(retriers);
+            CountDownLatch successLatch = new CountDownLatch(retriers);
 
-            inParallel(retriers + 1, (final int tId, final Connection c, final Queue<Exception> exceptionQ) -> {
+            inParallel(retriers + 1, (int tId, Connection c, Queue<Exception> exceptionQ) -> {
                 awaitRootVersionChange(c, origRootVsn);
 
                 if (tId == 0) {
@@ -47,9 +47,9 @@ public class RetryTest extends TestBase {
                     });
 
                 } else {
-                    final AtomicBoolean triggered = new AtomicBoolean(false);
-                    final long found = c.runTransaction((final Transaction txn) -> {
-                        final long num = txn.getRoot().getValue().order(ByteOrder.BIG_ENDIAN).getLong(0);
+                    AtomicBoolean triggered = new AtomicBoolean(false);
+                    long found = c.runTransaction(txn -> {
+                        long num = txn.getRoot().getValue().order(ByteOrder.BIG_ENDIAN).getLong(0);
                         if (num == 0) {
                             if (!triggered.get()) {
                                 triggered.set(true);
@@ -83,30 +83,30 @@ public class RetryTest extends TestBase {
     @Test
     public void disjointRetry() throws Exception {
         try {
-            final long magicNumber = 42;
-            final int changeIdx = 2;
-            final TxnId origRootVsn = setRootToNZeroObjs(createConnections(1)[0], 3);
+            long magicNumber = 42;
+            int changeIdx = 2;
+            TxnId origRootVsn = setRootToNZeroObjs(createConnections(1)[0], 3);
 
-            final CountDownLatch retryLatch = new CountDownLatch(1);
-            inParallel(2, (final int tId, final Connection c, final Queue<Exception> exceptionQ) -> {
+            CountDownLatch retryLatch = new CountDownLatch(1);
+            inParallel(2, (int tId, Connection c, Queue<Exception> exceptionQ) -> {
                 awaitRootVersionChange(c, origRootVsn);
 
                 if (tId == 0) {
                     retryLatch.await();
                     Thread.sleep(250);
                     c.runTransaction(txn -> {
-                        final GoshawkObj obj = txn.getRoot().getReferences()[changeIdx];
+                        GoshawkObj obj = txn.getRoot().getReferences()[changeIdx];
                         obj.set(ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN).putLong(0, magicNumber));
                         return null;
                     });
 
                 } else {
-                    final AtomicBoolean triggered = new AtomicBoolean(false);
-                    final int foundIdx = c.runTransaction((final Transaction txn) -> {
-                        final GoshawkObj[] objs = txn.getRoot().getReferences();
+                    AtomicBoolean triggered = new AtomicBoolean(false);
+                    int foundIdx = c.runTransaction(txn -> {
+                        GoshawkObj[] objs = txn.getRoot().getReferences();
                         for (int idx = 0; idx < objs.length; idx++) {
-                            final GoshawkObj obj = objs[idx];
-                            final long v = obj.getValue().order(ByteOrder.BIG_ENDIAN).getLong(0);
+                            GoshawkObj obj = objs[idx];
+                            long v = obj.getValue().order(ByteOrder.BIG_ENDIAN).getLong(0);
                             if (v != 0) {
                                 return idx;
                             }

@@ -26,18 +26,18 @@ public class NestedTest extends TestBase {
     @Test
     public void nestedRead() throws Exception {
         try {
-            final Connection c = createConnections(1)[0];
+            Connection c = createConnections(1)[0];
 
             // Just read the root var from several nested txns
-            final int r0 = c.runTransaction((final Transaction t0) -> {
-                final GoshawkObj rootObj0 = t0.getRoot();
-                final int r1 = c.runTransaction((final Transaction t1) -> {
-                    final GoshawkObj rootObj1 = t1.getRoot();
+            int r0 = c.runTransaction(t0 -> {
+                GoshawkObj rootObj0 = t0.getRoot();
+                int r1 = c.runTransaction(t1 -> {
+                    GoshawkObj rootObj1 = t1.getRoot();
                     if (rootObj0 != rootObj1) {
                         throw new IllegalStateException("Should have pointer equality between the same object in nested txns");
                     }
-                    final int r2 = c.runTransaction((final Transaction t2) -> {
-                        final GoshawkObj rootObj2 = t2.getRoot();
+                    int r2 = c.runTransaction(t2 -> {
+                        GoshawkObj rootObj2 = t2.getRoot();
                         if (rootObj1 != rootObj2) {
                             throw new IllegalStateException("Should have pointer equality between the same object in nested txns");
                         }
@@ -64,35 +64,35 @@ public class NestedTest extends TestBase {
     @Test
     public void nestedWrite() throws Exception {
         try {
-            final Connection c = createConnections(1)[0];
+            Connection c = createConnections(1)[0];
 
             // A write made in a parent should be visible in the child
-            c.runTransaction((final Transaction t0) -> {
-                final GoshawkObj rootObj0 = t0.getRoot();
+            c.runTransaction(t0 -> {
+                GoshawkObj rootObj0 = t0.getRoot();
                 rootObj0.set(ByteBuffer.wrap("outer".getBytes()));
-                c.runTransaction((final Transaction t1) -> {
-                    final GoshawkObj rootObj1 = t1.getRoot();
-                    final String found1 = byteBufferToString(rootObj1.getValue(), "outer".length());
+                c.runTransaction(t1 -> {
+                    GoshawkObj rootObj1 = t1.getRoot();
+                    String found1 = byteBufferToString(rootObj1.getValue(), "outer".length());
                     if (!"outer".equals(found1)) {
                         throw new IllegalStateException("Expected to find 'outer' but found " + found1);
                     }
                     rootObj1.set(ByteBuffer.wrap("mid".getBytes()));
-                    c.runTransaction((final Transaction t2) -> {
-                        final GoshawkObj rootObj2 = t2.getRoot();
-                        final String found2 = byteBufferToString(rootObj2.getValue(), "mid".length());
+                    c.runTransaction(t2 -> {
+                        GoshawkObj rootObj2 = t2.getRoot();
+                        String found2 = byteBufferToString(rootObj2.getValue(), "mid".length());
                         if (!"mid".equals(found2)) {
                             throw new IllegalStateException("Expected to find 'mid' but found " + found2);
                         }
                         rootObj1.set(ByteBuffer.wrap("inner".getBytes()));
                         return null;
                     });
-                    final String found3 = byteBufferToString(rootObj1.getValue(), "inner".length());
+                    String found3 = byteBufferToString(rootObj1.getValue(), "inner".length());
                     if (!"inner".equals(found3)) {
                         throw new IllegalStateException("Expected to find 'inner' but found " + found3);
                     }
                     return null;
                 });
-                final String found4 = byteBufferToString(rootObj0.getValue(), "inner".length());
+                String found4 = byteBufferToString(rootObj0.getValue(), "inner".length());
                 if (!"inner".equals(found4)) {
                     throw new IllegalStateException("Expected to find 'inner' but found " + found4);
                 }
@@ -109,38 +109,38 @@ public class NestedTest extends TestBase {
     @Test
     public void nestedInnerAbort() throws Exception {
         try {
-            final Connection c = createConnections(1)[0];
+            Connection c = createConnections(1)[0];
 
             // A write made in a child which is aborted should not be seen in the parent.
-            c.runTransaction((final Transaction t0) -> {
-                final GoshawkObj rootObj0 = t0.getRoot();
+            c.runTransaction(t0 -> {
+                GoshawkObj rootObj0 = t0.getRoot();
                 rootObj0.set(ByteBuffer.wrap("outer".getBytes()));
-                c.runTransaction((final Transaction t1) -> {
-                    final GoshawkObj rootObj1 = t1.getRoot();
-                    final String found1 = byteBufferToString(rootObj1.getValue(), "outer".length());
+                c.runTransaction(t1 -> {
+                    GoshawkObj rootObj1 = t1.getRoot();
+                    String found1 = byteBufferToString(rootObj1.getValue(), "outer".length());
                     if (!"outer".equals(found1)) {
                         throw new IllegalStateException("Expected to find 'outer' but found " + found1);
                     }
                     rootObj1.set(ByteBuffer.wrap("mid".getBytes()));
                     try {
-                        c.runTransaction((final Transaction t2) -> {
-                            final GoshawkObj rootObj2 = t2.getRoot();
-                            final String found2 = byteBufferToString(rootObj2.getValue(), "mid".length());
+                        c.runTransaction(t2 -> {
+                            GoshawkObj rootObj2 = t2.getRoot();
+                            String found2 = byteBufferToString(rootObj2.getValue(), "mid".length());
                             if (!"mid".equals(found2)) {
                                 throw new IllegalStateException("Expected to find 'mid' but found " + found2);
                             }
                             rootObj1.set(ByteBuffer.wrap("inner".getBytes()));
                             throw new UserAbortedTxnException();
                         });
-                    } catch (final UserAbortedTxnException e) {
+                    } catch (UserAbortedTxnException e) {
                     }
-                    final String found3 = byteBufferToString(rootObj1.getValue(), "mid".length());
+                    String found3 = byteBufferToString(rootObj1.getValue(), "mid".length());
                     if (!"mid".equals(found3)) {
                         throw new IllegalStateException("Expected to find 'mid' but found " + found3);
                     }
                     return null;
                 });
-                final String found4 = byteBufferToString(rootObj0.getValue(), "mid".length());
+                String found4 = byteBufferToString(rootObj0.getValue(), "mid".length());
                 if (!"mid".equals(found4)) {
                     throw new IllegalStateException("Expected to find 'mid' but found " + found4);
                 }
@@ -154,26 +154,26 @@ public class NestedTest extends TestBase {
     @Test
     public void nestedInnerRetry() throws Exception {
         try {
-            final TxnId origRootVsn = setRootToZeroInt64(createConnections(1)[0]);
-            final CountDownLatch retryLatch = new CountDownLatch(1);
-            inParallel(2, (final int tId, final Connection c, final Queue<Exception> exceptionQ) -> {
+            TxnId origRootVsn = setRootToZeroInt64(createConnections(1)[0]);
+            CountDownLatch retryLatch = new CountDownLatch(1);
+            inParallel(2, (int tId, Connection c, Queue<Exception> exceptionQ) -> {
                 if (tId == 0) {
                     awaitRootVersionChange(c, origRootVsn);
                     retryLatch.await();
                     Thread.sleep(250);
-                    c.runTransaction((final Transaction txn) -> {
+                    c.runTransaction(txn -> {
                         txn.getRoot().set(ByteBuffer.wrap("magic".getBytes()));
                         return null;
                     });
 
                 } else {
-                    c.runTransaction((final Transaction t0) -> {
-                        final GoshawkObj rootObj0 = t0.getRoot();
-                        final String found0 = byteBufferToString(rootObj0.getValue(), "magic".length());
+                    c.runTransaction(t0 -> {
+                        GoshawkObj rootObj0 = t0.getRoot();
+                        String found0 = byteBufferToString(rootObj0.getValue(), "magic".length());
                         if ("magic".equals(found0)) {
                             return null;
                         } else {
-                            return c.runTransaction((final Transaction t1) -> {
+                            return c.runTransaction(t1 -> {
                                 // Even though we've not read root in this inner txn,
                                 // retry should still work!
                                 retryLatch.countDown();
@@ -194,19 +194,19 @@ public class NestedTest extends TestBase {
         try {
             // A create made in a child, returned to the parent should both be
             // directly usable and writable.
-            final Connection c = createConnections(1)[0];
-            c.runTransaction((final Transaction t0) -> {
-                final GoshawkObj rootObj0 = t0.getRoot();
-                final GoshawkObj obj0 = c.runTransaction((final Transaction t1) -> {
-                    final GoshawkObj obj1 = t1.createObject(ByteBuffer.wrap("Hello".getBytes()));
+            Connection c = createConnections(1)[0];
+            c.runTransaction(t0 -> {
+                GoshawkObj rootObj0 = t0.getRoot();
+                GoshawkObj obj0 = c.runTransaction(t1 -> {
+                    GoshawkObj obj1 = t1.createObject(ByteBuffer.wrap("Hello".getBytes()));
                     t1.getRoot().setReferences(obj1);
                     return obj1;
                 }).result;
-                final GoshawkObj[] refs = rootObj0.getReferences();
+                GoshawkObj[] refs = rootObj0.getReferences();
                 if (refs.length != 1 || refs[0] != obj0) {
                     throw new IllegalStateException("Expected to find obj0 as only ref from root. Instead found " + refs);
                 }
-                final String val0 = byteBufferToString(refs[0].getValue(), "Hello".length());
+                String val0 = byteBufferToString(refs[0].getValue(), "Hello".length());
                 if (!"Hello".equals(val0)) {
                     throw new IllegalStateException("Expected to find 'Hello' as value of obj0. Instead found " + val0);
                 }
@@ -214,7 +214,7 @@ public class NestedTest extends TestBase {
                 return null;
             });
 
-            final String val1 = c.runTransaction((final Transaction t0) ->
+            String val1 = c.runTransaction(t0 ->
                     byteBufferToString(t0.getRoot().getReferences()[0].getValue(), "Goodbye".length())
             ).result;
             if (!"Goodbye".equals(val1)) {
@@ -225,8 +225,8 @@ public class NestedTest extends TestBase {
         }
     }
 
-    private static String byteBufferToString(final ByteBuffer buf, final int len) {
-        final byte[] ary = new byte[len];
+    private static String byteBufferToString(ByteBuffer buf, int len) {
+        byte[] ary = new byte[len];
         buf.get(ary);
         return new String(ary);
     }
