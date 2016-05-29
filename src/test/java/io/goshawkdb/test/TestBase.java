@@ -100,7 +100,7 @@ public class TestBase {
      * Sets the root object to 8 0-bytes, with no references.
      */
     protected TxnId setRootToZeroInt64(final Connection c) throws Exception {
-        return c.runTransaction((final Transaction<TxnId> txn) -> {
+        return c.runTransaction((final Transaction txn) -> {
             final GoshawkObj root = txn.getRoot();
             root.set(ByteBuffer.allocate(8));
             return root.getVersion();
@@ -112,7 +112,7 @@ public class TestBase {
      * object, which has an empty value set.
      */
     protected TxnId setRootToNZeroObjs(final Connection c, final int n) throws Exception {
-        return c.runTransaction((final Transaction<TxnId> txn) -> {
+        return c.runTransaction((final Transaction txn) -> {
             final GoshawkObj[] objs = new GoshawkObj[n];
             for (int idx = 0; idx < n; idx++) {
                 objs[idx] = txn.createObject(ByteBuffer.allocate(8));

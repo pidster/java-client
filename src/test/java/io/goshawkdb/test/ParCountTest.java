@@ -11,14 +11,11 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
-import java.util.ArrayList;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedDeque;
 
 import io.goshawkdb.client.Connection;
 import io.goshawkdb.client.GoshawkObj;
 import io.goshawkdb.client.Transaction;
-import io.goshawkdb.client.TransactionResult;
 import io.goshawkdb.client.TxnId;
 import io.goshawkdb.client.VarUUId;
 
@@ -36,14 +33,14 @@ public class ParCountTest extends TestBase {
 
             inParallel(threadCount, (final int tId, final Connection c, final Queue<Exception> exceptionQ) -> {
                 awaitRootVersionChange(c, origRootVsn);
-                final VarUUId objId = c.runTransaction((final Transaction<VarUUId> txn) ->
+                final VarUUId objId = c.runTransaction((final Transaction txn) ->
                         txn.getRoot().getReferences()[tId].id
                 ).result;
                 final long start = System.nanoTime();
                 long expected = 0L;
                 for (int idx = 0; idx < 1000; idx++) {
                     final long expectedCopy = expected;
-                    expected = c.runTransaction((final Transaction<Long> txn) -> {
+                    expected = c.runTransaction((final Transaction txn) -> {
                         final GoshawkObj obj = txn.getObject(objId);
                         final ByteBuffer valBuf = obj.getValue().order(ByteOrder.BIG_ENDIAN);
                         final long old = valBuf.getLong(0);

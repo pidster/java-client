@@ -48,7 +48,7 @@ public class RetryTest extends TestBase {
 
                 } else {
                     final AtomicBoolean triggered = new AtomicBoolean(false);
-                    final long found = c.runTransaction((final Transaction<Long> txn) -> {
+                    final long found = c.runTransaction((final Transaction txn) -> {
                         final long num = txn.getRoot().getValue().order(ByteOrder.BIG_ENDIAN).getLong(0);
                         if (num == 0) {
                             if (!triggered.get()) {
@@ -102,7 +102,7 @@ public class RetryTest extends TestBase {
 
                 } else {
                     final AtomicBoolean triggered = new AtomicBoolean(false);
-                    final int foundIdx = c.runTransaction((final Transaction<Integer> txn) -> {
+                    final int foundIdx = c.runTransaction((final Transaction txn) -> {
                         final GoshawkObj[] objs = txn.getRoot().getReferences();
                         for (int idx = 0; idx < objs.length; idx++) {
                             final GoshawkObj obj = objs[idx];

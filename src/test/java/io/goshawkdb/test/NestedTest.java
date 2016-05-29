@@ -29,14 +29,14 @@ public class NestedTest extends TestBase {
             final Connection c = createConnections(1)[0];
 
             // Just read the root var from several nested txns
-            final int r0 = c.runTransaction((final Transaction<Integer> t0) -> {
+            final int r0 = c.runTransaction((final Transaction t0) -> {
                 final GoshawkObj rootObj0 = t0.getRoot();
-                final int r1 = c.runTransaction((final Transaction<Integer> t1) -> {
+                final int r1 = c.runTransaction((final Transaction t1) -> {
                     final GoshawkObj rootObj1 = t1.getRoot();
                     if (rootObj0 != rootObj1) {
                         throw new IllegalStateException("Should have pointer equality between the same object in nested txns");
                     }
-                    final int r2 = c.runTransaction((final Transaction<Integer> t2) -> {
+                    final int r2 = c.runTransaction((final Transaction t2) -> {
                         final GoshawkObj rootObj2 = t2.getRoot();
                         if (rootObj1 != rootObj2) {
                             throw new IllegalStateException("Should have pointer equality between the same object in nested txns");
@@ -67,17 +67,17 @@ public class NestedTest extends TestBase {
             final Connection c = createConnections(1)[0];
 
             // A write made in a parent should be visible in the child
-            c.runTransaction((final Transaction<Void> t0) -> {
+            c.runTransaction((final Transaction t0) -> {
                 final GoshawkObj rootObj0 = t0.getRoot();
                 rootObj0.set(ByteBuffer.wrap("outer".getBytes()));
-                c.runTransaction((final Transaction<Void> t1) -> {
+                c.runTransaction((final Transaction t1) -> {
                     final GoshawkObj rootObj1 = t1.getRoot();
                     final String found1 = byteBufferToString(rootObj1.getValue(), "outer".length());
                     if (!"outer".equals(found1)) {
                         throw new IllegalStateException("Expected to find 'outer' but found " + found1);
                     }
                     rootObj1.set(ByteBuffer.wrap("mid".getBytes()));
-                    c.runTransaction((final Transaction<Void> t2) -> {
+                    c.runTransaction((final Transaction t2) -> {
                         final GoshawkObj rootObj2 = t2.getRoot();
                         final String found2 = byteBufferToString(rootObj2.getValue(), "mid".length());
                         if (!"mid".equals(found2)) {
@@ -112,10 +112,10 @@ public class NestedTest extends TestBase {
             final Connection c = createConnections(1)[0];
 
             // A write made in a child which is aborted should not be seen in the parent.
-            c.runTransaction((final Transaction<Void> t0) -> {
+            c.runTransaction((final Transaction t0) -> {
                 final GoshawkObj rootObj0 = t0.getRoot();
                 rootObj0.set(ByteBuffer.wrap("outer".getBytes()));
-                c.runTransaction((final Transaction<Void> t1) -> {
+                c.runTransaction((final Transaction t1) -> {
                     final GoshawkObj rootObj1 = t1.getRoot();
                     final String found1 = byteBufferToString(rootObj1.getValue(), "outer".length());
                     if (!"outer".equals(found1)) {
@@ -123,7 +123,7 @@ public class NestedTest extends TestBase {
                     }
                     rootObj1.set(ByteBuffer.wrap("mid".getBytes()));
                     try {
-                        c.runTransaction((final Transaction<Void> t2) -> {
+                        c.runTransaction((final Transaction t2) -> {
                             final GoshawkObj rootObj2 = t2.getRoot();
                             final String found2 = byteBufferToString(rootObj2.getValue(), "mid".length());
                             if (!"mid".equals(found2)) {
@@ -161,19 +161,19 @@ public class NestedTest extends TestBase {
                     awaitRootVersionChange(c, origRootVsn);
                     retryLatch.await();
                     Thread.sleep(250);
-                    c.runTransaction((final Transaction<Void> txn) -> {
+                    c.runTransaction((final Transaction txn) -> {
                         txn.getRoot().set(ByteBuffer.wrap("magic".getBytes()));
                         return null;
                     });
 
                 } else {
-                    c.runTransaction((final Transaction<Void> t0) -> {
+                    c.runTransaction((final Transaction t0) -> {
                         final GoshawkObj rootObj0 = t0.getRoot();
                         final String found0 = byteBufferToString(rootObj0.getValue(), "magic".length());
                         if ("magic".equals(found0)) {
                             return null;
                         } else {
-                            return c.runTransaction((final Transaction<Void> t1) -> {
+                            return c.runTransaction((final Transaction t1) -> {
                                 // Even though we've not read root in this inner txn,
                                 // retry should still work!
                                 retryLatch.countDown();
@@ -195,9 +195,9 @@ public class NestedTest extends TestBase {
             // A create made in a child, returned to the parent should both be
             // directly usable and writable.
             final Connection c = createConnections(1)[0];
-            c.runTransaction((final Transaction<Void> t0) -> {
+            c.runTransaction((final Transaction t0) -> {
                 final GoshawkObj rootObj0 = t0.getRoot();
-                final GoshawkObj obj0 = c.runTransaction((final Transaction<GoshawkObj> t1) -> {
+                final GoshawkObj obj0 = c.runTransaction((final Transaction t1) -> {
                     final GoshawkObj obj1 = t1.createObject(ByteBuffer.wrap("Hello".getBytes()));
                     t1.getRoot().setReferences(obj1);
                     return obj1;
@@ -214,7 +214,7 @@ public class NestedTest extends TestBase {
                 return null;
             });
 
-            final String val1 = c.runTransaction((final Transaction<String> t0) ->
+            final String val1 = c.runTransaction((final Transaction t0) ->
                     byteBufferToString(t0.getRoot().getReferences()[0].getValue(), "Goodbye".length())
             ).result;
             if (!"Goodbye".equals(val1)) {

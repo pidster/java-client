@@ -34,7 +34,7 @@ public class PingPongTest extends TestBase {
                 awaitRootVersionChange(c, origRootVsn);
                 boolean inProgress = true;
                 while (inProgress) {
-                    inProgress = c.runTransaction((final Transaction<Boolean> txn) -> {
+                    inProgress = c.runTransaction((final Transaction txn) -> {
                         final GoshawkObj root = txn.getRoot();
                         final ByteBuffer valBuf = root.getValue().order(ByteOrder.BIG_ENDIAN);
                         final long val = valBuf.getLong(0);

@@ -90,7 +90,7 @@ public class Connection implements AutoCloseable {
     private ByteBuffer nameSpace;
     private long nextVarUUId;
     private long nextTxnId;
-    private Transaction<?> txn;
+    private TransactionImpl<?> txn;
 
     Connection(final ConnectionFactory cf, final Certs c, final String h, final int p) {
         port = p;
@@ -190,9 +190,9 @@ public class Connection implements AutoCloseable {
      * @return The result of the transaction fuction.
      * @throws Exception The transaction may through exceptions.
      */
-    public <Result> TransactionResult<Result> runTransaction(final TransactionFun<Result> fun) throws Exception {
+    public <Result> TransactionResult<Result> runTransaction(final TransactionFunction<Result> fun) throws Exception {
         final VarUUId r;
-        final Transaction<?> oldTxn;
+        final TransactionImpl<?> oldTxn;
         synchronized (lock) {
             if (root == null) {
                 throw new IllegalStateException("Unable to start transaction: root object not ready");
@@ -200,7 +200,7 @@ public class Connection implements AutoCloseable {
             r = root;
             oldTxn = txn;
         }
-        final Transaction<Result> curTxn = new Transaction<>(fun, this, this.cache, r, oldTxn);
+        final TransactionImpl<Result> curTxn = new TransactionImpl<>(fun, this, this.cache, r, oldTxn);
         synchronized (lock) {
             txn = curTxn;
         }
